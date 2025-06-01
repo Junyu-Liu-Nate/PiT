@@ -76,8 +76,11 @@ class IPAdapter:
 
         # load image encoder
         # self.image_encoder = CLIPVisionModelWithProjection.from_pretrained("h94/IP-Adapter", subfolder="models/image_encoder").to(
+        # self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+        #     "h94/IP-Adapter", subfolder=image_encoder_path
+        # ).to(self.device, dtype=torch.float16)
         self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(
-            "h94/IP-Adapter", subfolder=image_encoder_path
+            image_encoder_path
         ).to(self.device, dtype=torch.float16)
         self.clip_image_processor = CLIPImageProcessor()
         # image proj model

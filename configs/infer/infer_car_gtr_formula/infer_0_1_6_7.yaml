@@ -1,0 +1,4 @@
+prior_path: models/Piece-it-Together/models/products_ckpt/prior.ckpt
+prior_repo:
+crops_dir: assets/car_gtr_formula/0_1_6_7
+output_dir: inference/car_gtr_formula/0_1_6_7

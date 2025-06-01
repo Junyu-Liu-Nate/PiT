@@ -1,0 +1,4 @@
+prior_path: models/Piece-it-Together/models/products_ckpt/prior.ckpt
+prior_repo:
+crops_dir: assets/chair_09_299/0_1_6_7
+output_dir: inference/chair_09_299/0_1_6_7

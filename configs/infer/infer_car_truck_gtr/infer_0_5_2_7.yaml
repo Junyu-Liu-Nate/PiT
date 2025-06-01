@@ -1,0 +1,4 @@
+prior_path: models/Piece-it-Together/models/products_ckpt/prior.ckpt
+prior_repo:
+crops_dir: assets/car_truck_gtr/0_5_2_7
+output_dir: inference/car_truck_gtr/0_5_2_7

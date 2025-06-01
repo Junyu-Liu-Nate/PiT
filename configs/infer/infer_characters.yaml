@@ -1,4 +1,4 @@
-prior_path: models/characters_ckpt/prior.ckpt
-prior_repo: kfirgold99/Piece-it-Together
-crops_dir: assets/characters_parts
-output_dir: inference/characters
+prior_path: models/Piece-it-Together/models/products_ckpt/prior.ckpt
+prior_repo:
+crops_dir: assets/pit_v2_fine_eval/0_1_8_9_4_11
+output_dir: inference/pit_v2_fine_eval_test/0_1_8_9_4_11

@@ -71,7 +71,8 @@ def show_masks_on_image(raw_image, masks, caption=None):
 def generate(cfg: RunConfig):
     cfg.out_dir.mkdir(exist_ok=True, parents=True)
 
-    flux_pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16).to("cuda")
+    # flux_pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16).to("cuda")
+    flux_pipe = FluxPipeline.from_pretrained("/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/FLUX.1-schnell", torch_dtype=torch.bfloat16).to("cuda")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     segmentor = pipeline("mask-generation", model="facebook/sam-vit-base", device=device)

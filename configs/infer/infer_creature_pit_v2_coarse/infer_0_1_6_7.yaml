@@ -1,0 +1,4 @@
+prior_path: models/Piece-it-Together/models/characters_ckpt/prior.ckpt
+prior_repo:
+crops_dir: assets/creature_pit_v2_coarse/0_1_6_7
+output_dir: inference/creature_pit_v2_coarse/0_1_6_7

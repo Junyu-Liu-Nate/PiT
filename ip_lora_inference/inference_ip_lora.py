@@ -37,9 +37,22 @@ class ExperimentConfig:
             assert ref_image_path.exists(), f"Reference image path {ref_image_path} does not exist"
 
 
+# def load_rmbg_model():
+#     # model = AutoModelForImageSegmentation.from_pretrained("briaai/RMBG-2.0", trust_remote_code=True)
+#     model = AutoModelForImageSegmentation.from_pretrained("/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/briaai/RMBG-2.0", trust_remote_code=True)
+#     torch.set_float32_matmul_precision(["high", "highest"][0])
+#     model.to("cuda")
+#     model.eval()
+#     return model
+
 def load_rmbg_model():
-    model = AutoModelForImageSegmentation.from_pretrained("briaai/RMBG-2.0", trust_remote_code=True)
-    torch.set_float32_matmul_precision(["high", "highest"][0])
+    model_path = "/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/RMBG-2.0"
+    model = AutoModelForImageSegmentation.from_pretrained(
+        model_path,
+        trust_remote_code=True,
+        local_files_only=True   # <<< this tells it NOT to try going online
+    )
+    torch.set_float32_matmul_precision("high")
     model.to("cuda")
     model.eval()
     return model
@@ -75,17 +88,23 @@ def remove_background(model, image: Image.Image) -> Image.Image:
 @torch.inference_mode()
 @pyrallis.wrap()
 def main(cfg: ExperimentConfig):
-    pipe_id = "stabilityai/stable-diffusion-xl-base-1.0"
+    print("Config received:", cfg)
+
+    # pipe_id = "stabilityai/stable-diffusion-xl-base-1.0"
+    pipe_id = "/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/stable-diffusion-xl-base-1.0"
     print("loading unet")
     unet = UNet2DConditionModel.from_pretrained(pipe_id, subfolder="unet")
+    
     print("loading ip model")
+    ip_ckpt_path = Path("/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/IP-Adapter/sdxl_models/ip-adapter-plus_sdxl_vit-h.bin")
     ip_model = IPAdapterPlusXLLoRA(
         unet=unet,
-        image_encoder_path="models/image_encoder",
-        ip_ckpt=cfg.ip_adapter_path,
+        image_encoder_path="/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/IP-Adapter/models/image_encoder",
+        ip_ckpt=ip_ckpt_path,
         device="cuda",
         num_tokens=16,
     )
+    
     print("loading pipeline")
     pipe = StableDiffusionXLIPLoRAPipeline.from_pretrained(
         pipe_id,
@@ -93,6 +112,7 @@ def main(cfg: ExperimentConfig):
         variant=None,
         torch_dtype=torch.float32,
     )
+    
     print("loading lora")
     pipe.load_lora_weights(
         pretrained_model_name_or_path_or_dict=cfg.lora_path,

@@ -95,27 +95,32 @@ def main(cfg: RunConfig):
         n_heads=model_cfg.num_attention_heads,
     )
     prior.load_state_dict(torch.load(prior_ckpt_path))
+    print(f"Finish loading prior model from {prior_ckpt_path}")
 
     image_pipe = StableDiffusionXLPipeline.from_pretrained(
-        "stabilityai/stable-diffusion-xl-base-1.0",
+        "/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/stable-diffusion-xl-base-1.0",
         torch_dtype=torch.float16,
         add_watermarker=False,
     )
+    print(f"Finish loading image pipeline")
 
-    ip_ckpt_path = hf_hub_download(
-        repo_id="h94/IP-Adapter",
-        filename="ip-adapter-plus_sdxl_vit-h.bin",
-        subfolder="sdxl_models",
-        local_dir="pretrained_models",
-    )
+    # ip_ckpt_path = hf_hub_download(
+    #     repo_id="h94/IP-Adapter",
+    #     filename="ip-adapter-plus_sdxl_vit-h.bin",
+    #     subfolder="sdxl_models",
+    #     local_dir="pretrained_models",
+    # )
+    ip_ckpt_path = Path("/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/IP-Adapter/sdxl_models/ip-adapter-plus_sdxl_vit-h.bin")
+    print(f"Finish specifying {ip_ckpt_path}")
 
     ip_model = IPAdapterPlusXL(
         image_pipe,
-        "models/image_encoder",
+        "/users/ljunyu/data/ljunyu/projects/few_shot_concept/code/pretrained_models/IP-Adapter/models/image_encoder",
         ip_ckpt_path,
         device,
         num_tokens=16,
     )
+    print(f"Finish loading image encoder from {ip_ckpt_path}")
 
     image_processor = ip_model.clip_image_processor
 
@@ -139,7 +144,9 @@ def main(cfg: RunConfig):
 
     if len(unordered_crops) > 0:
         for _ in range(cfg.n_randoms):
-            n_crops = random.randint(1, min(3, len(unordered_crops)))
+            # n_crops = random.randint(1, min(4, len(unordered_crops)))
+            n_crops = len(unordered_crops)
+            # print(f"Number of crops: {n_crops}")
             crop_paths = random.sample(unordered_crops, n_crops)
             # Some of the paths might be dirs, if it is a dir, take a random file from it
             crop_paths = [c if c.is_file() else random.choice([f for f in c.iterdir()]) for c in crop_paths]
@@ -164,17 +171,87 @@ def main(cfg: RunConfig):
 
     random.shuffle(crop_sets)
 
+    # for crop_paths in tqdm(crop_sets):
+    #     out_name = f"{random.randint(0, 1000000)}"
+
+    #     processed_crops = []
+    #     input_images = []
+    #     captions = []
+
+    #     # Extend to >3 with Nones
+    #     while len(crop_paths) < 3:
+    #         crop_paths.append(None)
+
+    #     for path_ind, path in enumerate(crop_paths):
+    #         if path is None:
+    #             image = Image.new("RGB", (224, 224), (255, 255, 255))
+    #         else:
+    #             image = Image.open(path).convert("RGB")
+    #             if path_ind > 0 or not model_cfg.use_ref:
+    #                 background = Image.new("RGB", (1024, 1024), (255, 255, 255))
+    #                 image = paste_on_background(image, background, scale=0.92)
+    #             else:
+    #                 image = image.resize((1024, 1024))
+    #             if cfg.as_sketch and random.random() < 0.5:
+    #                 num_lines = random.randint(8, 15)
+    #                 image = bezier_utils.get_sketch(image, total_curves=num_lines, drop_line_prob=0.1)
+    #             input_images.append(image)
+    #             # Name should be parent directory name
+    #             captions.append(path.parent.stem)
+    #         processed_image = (
+    #             torch.Tensor(image_processor(image)["pixel_values"][0]).to(device).unsqueeze(0).to(weight_dtype)
+    #         )
+    #         processed_crops.append(processed_image)
+
+    #     image_embed_inputs = []
+    #     for crop_ind in range(len(processed_crops)):
+    #         image_embed_inputs.append(ip_model.get_image_embeds(processed_crops[crop_ind], skip_uncond=True))
+    #     crops_input_sequence = torch.cat(image_embed_inputs, dim=1)
+
+    #     for _ in range(4):
+    #         seed = random.randint(0, 1000000)
+    #         for scale in [cfg.scale]:
+    #             negative_cond_sequence = torch.zeros_like(crops_input_sequence)
+    #             embeds_len = zero_image_embeds.shape[1]
+    #             for i in range(0, negative_cond_sequence.shape[1], embeds_len):
+    #                 negative_cond_sequence[:, i : i + embeds_len] = zero_image_embeds.detach()
+
+    #             img_emb = prior_pipeline(
+    #                 cond_sequence=crops_input_sequence,
+    #                 negative_cond_sequence=negative_cond_sequence,
+    #                 num_inference_steps=25,
+    #                 num_images_per_prompt=1,
+    #                 guidance_scale=scale,
+    #                 generator=torch.Generator(device="cuda").manual_seed(seed),
+    #             ).image_embeds
+
+    #             for seed_2 in range(1):
+    #                 images = ip_model.generate(
+    #                     image_prompt_embeds=img_emb,
+    #                     num_samples=1,
+    #                     num_inference_steps=50,
+    #                 )
+    #                 input_images += images
+    #                 captions.append(f"prior_s {seed}, cfg {scale}")  # , unet_s {seed_2}")
+    #     # The rest of the results will just be in the dir
+    #     gen_images = vis_utils.create_table_plot(images=input_images, captions=captions)
+
+    #     gen_images.save(output_dir / f"{out_name}.jpg")
+
+    #     # Also save the divided images in a separate folder whose name is the same as the output image
+    #     divided_images_dir = output_dir / f"{out_name}_divided"
+    #     divided_images_dir.mkdir(parents=True, exist_ok=True)
+    #     for i, img in enumerate(input_images):
+    #         img.save(divided_images_dir / f"{i}.jpg")
+    # print("Done!")
+
     for crop_paths in tqdm(crop_sets):
-        out_name = f"{random.randint(0, 1000000)}"
-
-        processed_crops = []
-        input_images = []
-        captions = []
-
-        # Extend to >3 with Nones
+        # Ensure all crops are files (handle None cases)
+        crop_paths = [c if c is None or c.is_file() else random.choice(list(c.iterdir())) for c in crop_paths]
         while len(crop_paths) < 3:
             crop_paths.append(None)
 
+        processed_crops = []
         for path_ind, path in enumerate(crop_paths):
             if path is None:
                 image = Image.new("RGB", (224, 224), (255, 255, 255))
@@ -186,22 +263,19 @@ def main(cfg: RunConfig):
                 else:
                     image = image.resize((1024, 1024))
                 if cfg.as_sketch and random.random() < 0.5:
-                    num_lines = random.randint(8, 15)
-                    image = bezier_utils.get_sketch(image, total_curves=num_lines, drop_line_prob=0.1)
-                input_images.append(image)
-                # Name should be parent directory name
-                captions.append(path.parent.stem)
+                    image = bezier_utils.get_sketch(image, total_curves=random.randint(8, 15), drop_line_prob=0.1)
+
             processed_image = (
                 torch.Tensor(image_processor(image)["pixel_values"][0]).to(device).unsqueeze(0).to(weight_dtype)
             )
             processed_crops.append(processed_image)
 
-        image_embed_inputs = []
-        for crop_ind in range(len(processed_crops)):
-            image_embed_inputs.append(ip_model.get_image_embeds(processed_crops[crop_ind], skip_uncond=True))
+        image_embed_inputs = [
+            ip_model.get_image_embeds(img_crop, skip_uncond=True) for img_crop in processed_crops
+        ]
         crops_input_sequence = torch.cat(image_embed_inputs, dim=1)
 
-        for _ in range(4):
+        for _ in range(4):  # 4 generation runs
             seed = random.randint(0, 1000000)
             for scale in [cfg.scale]:
                 negative_cond_sequence = torch.zeros_like(crops_input_sequence)
@@ -215,27 +289,19 @@ def main(cfg: RunConfig):
                     num_inference_steps=25,
                     num_images_per_prompt=1,
                     guidance_scale=scale,
-                    generator=torch.Generator(device="cuda").manual_seed(seed),
+                    generator=torch.Generator(device=device).manual_seed(seed),
                 ).image_embeds
 
-                for seed_2 in range(1):
-                    images = ip_model.generate(
-                        image_prompt_embeds=img_emb,
-                        num_samples=1,
-                        num_inference_steps=50,
-                    )
-                    input_images += images
-                    captions.append(f"prior_s {seed}, cfg {scale}")  # , unet_s {seed_2}")
-        # The rest of the results will just be in the dir
-        gen_images = vis_utils.create_table_plot(images=input_images, captions=captions)
+                images = ip_model.generate(
+                    image_prompt_embeds=img_emb,
+                    num_samples=1,
+                    num_inference_steps=50,
+                )
 
-        gen_images.save(output_dir / f"{out_name}.jpg")
+                # Save generated image only
+                for img in images:
+                    img.save(output_dir / f"gen_{seed}_{random.randint(0,9999):04d}.jpg")
 
-        # Also save the divided images in a separate folder whose name is the same as the output image
-        divided_images_dir = output_dir / f"{out_name}_divided"
-        divided_images_dir.mkdir(parents=True, exist_ok=True)
-        for i, img in enumerate(input_images):
-            img.save(divided_images_dir / f"{i}.jpg")
     print("Done!")
 
 
